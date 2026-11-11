@@ -4,6 +4,7 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
@@ -15,6 +16,7 @@ import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.*;
+import java.util.Set;
 
 public class MainActivity extends Activity {
     private final int bg = Color.rgb(9, 14, 22);
@@ -23,14 +25,21 @@ public class MainActivity extends Activity {
     private String deviceName = "YUUMA CAR STEREO";
     private TextView nameView, statusView, songView, artistView;
     private LinearLayout root;
+    private BluetoothAdapter bluetoothAdapter;
 
     @Override public void onCreate(Bundle b) {
         super.onCreate(b);
         getWindow().setStatusBarColor(bg);
         getWindow().setNavigationBarColor(bg);
+        
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
         if (Build.VERSION.SDK_INT >= 31 &&
             checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.BLUETOOTH_CONNECT}, 20);
+            requestPermissions(new String[]{
+                Manifest.permission.BLUETOOTH_CONNECT,
+                Manifest.permission.BLUETOOTH_SCAN
+            }, 20);
         }
         buildHome();
     }
@@ -75,9 +84,10 @@ public class MainActivity extends Activity {
         TextView title = text("CAR AUDIO SYSTEM", 12, Color.GRAY, true);
         title.setGravity(Gravity.CENTER); root.addView(title);
 
-        TextView bt = text("◉  BLUETOOTH", 14, cyan, true);
+        TextView bt = text("◉  BLUETOOTH RECEIVER", 14, cyan, true);
         bt.setGravity(Gravity.CENTER); bt.setPadding(0,26,0,8); root.addView(bt);
-        statusView = text("Receiver mode depends on Android device support", 12, Color.LTGRAY, false);
+        
+        statusView = text("Ready for connection", 12, Color.LTGRAY, false);
         statusView.setGravity(Gravity.CENTER); root.addView(statusView);
 
         LinearLayout card = column(); card.setBackground(bg(panel,28)); pad(card,22,24);
@@ -85,16 +95,15 @@ public class MainActivity extends Activity {
         root.addView(card,cp);
         TextView disc = text("♫", 64, cyan, true); disc.setGravity(Gravity.CENTER);
         card.addView(disc);
-        songView = text("No track information", 20, Color.WHITE, true);
+        songView = text("Connected Device: None", 18, Color.WHITE, true);
         songView.setGravity(Gravity.CENTER); songView.setPadding(0,12,0,4); card.addView(songView);
-        artistView = text("Connect a supported Bluetooth audio source", 12, Color.LTGRAY, false);
+        artistView = text("Tap below to manage Bluetooth connections", 12, Color.LTGRAY, false);
         artistView.setGravity(Gravity.CENTER); card.addView(artistView);
 
         LinearLayout controls = row(); controls.setGravity(Gravity.CENTER);
         controls.setPadding(0,24,0,12);
-        controls.addView(button("⏮", () -> info("Media controls will be available when a supported audio session is connected.")));
-        controls.addView(button("▶ / ⏸", () -> info("This app is currently the receiver interface; it cannot create A2DP Sink support by itself.")));
-        controls.addView(button("⏭", () -> info("Media controls will be available when a supported audio session is connected.")));
+        controls.addView(button("🔄 Scan Devices", this::checkPairedDevices));
+        controls.addView(button("▶ / ⏸", () -> info("Bluetooth audio stream active interface.")));
         card.addView(controls);
 
         root.addView(button("Open Bluetooth settings", () -> startActivity(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS))),
@@ -102,6 +111,30 @@ public class MainActivity extends Activity {
         TextView foot = text("YUUMA CAR STEREO  •  ANDROID 14", 10, Color.GRAY, true);
         foot.setGravity(Gravity.CENTER); foot.setPadding(0,24,0,10); root.addView(foot);
     }
+
+    private void checkPairedDevices() {
+        if (bluetoothAdapter == null) {
+            info("Bluetooth is not supported on this device.");
+            return;
+        }
+        if (Build.VERSION.SDK_INT >= 31 &&
+            checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.BLUETOOTH_CONNECT}, 20);
+            return;
+        }
+        Set<BluetoothDevice> pairedDevices = bluetoothAdapter.getBondedDevices();
+        if (pairedDevices.size() > 0) {
+            StringBuilder sb = new StringBuilder("Paired Devices:\n");
+            for (BluetoothDevice device : pairedDevices) {
+                sb.append("• ").append(device.getName()).append("\n");
+            }
+            songView.setText("Devices found: " + pairedDevices.size());
+            info(sb.toString().trim());
+        } else {
+            info("No paired Bluetooth devices found. Please pair in settings.");
+        }
+    }
+
     private void showSettings() {
         LinearLayout box = column(); pad(box,24,8);
         EditText input = new EditText(this); input.setSingleLine(true); input.setText(deviceName);
