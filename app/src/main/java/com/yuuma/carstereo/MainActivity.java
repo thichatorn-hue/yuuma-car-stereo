@@ -184,7 +184,6 @@ public class MainActivity extends Activity {
         
         statusView.setText("Binding A2DP Sink Proxy...");
         try {
-            // โปรไฟล์ A2DP Sink ภายในระบบ Android มักใช้รหัสอ้างอิง 11 (หรือตามค่าคงที่เฉพาะรอม)
             bluetoothAdapter.getProfileProxy(this, new BluetoothProfile.ServiceListener() {
                 @Override
                 public void onServiceConnected(int profile, BluetoothProfile proxy) {
@@ -244,10 +243,11 @@ public class MainActivity extends Activity {
             if (devices != null && !devices.isEmpty()) {
                 BluetoothDevice device = devices.get(0);
                 songView.setText("Streaming: " + device.getName());
-                artistView.set("Active Audio Connection");
+                artistView.setText("Active Audio Connection");
                 info("Connected Stream Device: " + device.getName());
             } else {
                 songView.setText("No Active Stream");
+                artistView.setText("No active stream device");
                 info("No device is currently streaming audio via Sink.");
             }
         } catch (Exception e) {
@@ -289,3 +289,4 @@ public class MainActivity extends Activity {
             .show();
     }
 }
+```[cite: 1, 2]
