@@ -289,4 +289,3 @@ public class MainActivity extends Activity {
             .show();
     }
 }
-```[cite: 1, 2]
